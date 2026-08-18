@@ -186,6 +186,16 @@ Le fichier `streamlit/requirements.txt` contient uniquement les dependances nece
 
 C'est volontaire : Streamlit Cloud detecte les fichiers de dependances pres du point d'entree avant ceux de la racine. Cela evite d'installer tout l'environnement ML/API, notamment TensorFlow, qui n'est pas necessaire a l'interface.
 
+Streamlit Cloud lance uniquement l'interface Streamlit. Il ne demarre pas automatiquement l'API FastAPI du projet, meme si le code est dans le meme repository. L'API doit donc etre hebergee separement, par exemple sur Cloud Run, Azure App Service, Render ou un autre service capable d'exposer FastAPI.
+
+Une fois l'API deployee, ajouter son URL dans les secrets Streamlit :
+
+```toml
+API_URL = "https://mon-api.example.com"
+```
+
+L'URL de l'API est affichee dans la barre laterale, mais elle n'est pas modifiable par les visiteurs.
+
 Configuration de deploiement :
 
 - Repository : `GeeksterLab/Churn_baseline`

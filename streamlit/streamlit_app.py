@@ -268,18 +268,12 @@ def authenticated_request(method: str, endpoint: str, **kwargs) -> requests.Resp
 def render_sidebar():
     with st.sidebar:
         st.markdown("### ⚙️ Connexion API")
+        st.caption(f"API : `{st.session_state.base_url}`")
 
         if st.session_state.demo_mode:
             # En démo publique : l'URL est fixée par le déployeur, pas
             # modifiable par le visiteur (évite qu'il pointe l'app vers
             # une API tierce de son choix).
-            st.caption(f"API : `{st.session_state.base_url}`")
-        else:
-            st.session_state.base_url = st.text_input(
-                "URL de l'API", value=str(st.session_state.base_url)
-            )
-
-        if st.session_state.demo_mode:
             st.markdown(
                 f'<div class="risk-badge" style="background: rgba(56,189,248,0.15); '
                 f'color: {ACCENT_BRAND};">🌐 Mode démo — accès libre</div>',
