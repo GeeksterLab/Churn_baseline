@@ -1,0 +1,6 @@
+streamlit
+requests>=2.31
+pandas>=2.0
+plotly>=5.20
+matplotlib>=3.8
+seaborn>=0.13
