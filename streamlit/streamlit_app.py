@@ -495,7 +495,7 @@ def render_prediction_tab():
         return
 
     if resp.status_code == 401:
-        st.error("Session expirée, reconnecte-toi dans la barre latérale.")
+        st.error("L'API demande une authentification. Active DEMO_MODE=true côté API pour un accès public.")
         return
     if not resp.ok:
         st.error(f"Erreur API ({resp.status_code}) : {resp.text}")
@@ -551,6 +551,9 @@ def render_batch_tab():
         st.error(f"Impossible de joindre l'API sur {st.session_state.base_url}.")
         return
 
+    if resp.status_code == 401:
+        st.error("L'API demande une authentification. Active DEMO_MODE=true côté API pour un accès public.")
+        return
     if not resp.ok:
         st.error(f"Erreur API ({resp.status_code}) : {resp.text}")
         return
@@ -845,10 +848,6 @@ def main():
         "Détection de signaux de désabonnement en temps réel</p>",
         unsafe_allow_html=True,
     )
-
-    if not st.session_state.authenticated:
-        st.info("Connecte-toi via la barre latérale pour utiliser le radar.")
-        return
 
     tab_predict, tab_batch, tab_dataset, tab_model = st.tabs(
         ["🔮 Prédiction", "📦 Batch", "🔍 Dataset", "📊 Modèle"]
