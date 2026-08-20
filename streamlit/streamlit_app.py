@@ -280,6 +280,26 @@ def authenticated_request(method: str, endpoint: str, **kwargs) -> requests.Resp
     return resp
 
 
+def response_json(resp: requests.Response, label: str):
+    try:
+        return resp.json()
+    except requests.exceptions.JSONDecodeError:
+        content_type = resp.headers.get("content-type", "inconnu")
+        preview = resp.text.strip().replace("\n", " ")[:240]
+        st.error(
+            f"{label} a répondu avec du contenu non JSON "
+            f"(status {resp.status_code}, content-type {content_type})."
+        )
+        if "Placeholder | Cloud Run" in resp.text:
+            st.warning(
+                "Cloud Run sert encore la page placeholder : le backend FastAPI "
+                "n'est pas déployé correctement sur ce service."
+            )
+        elif preview:
+            st.code(preview)
+        return None
+
+
 # ╔════════════════════════════════════════════════════════════╗
 # ║ 🧭 SIDEBAR — connexion
 # ╚════════════════════════════════════════════════════════════╝
@@ -513,7 +533,9 @@ def render_prediction_tab():
         st.error(f"Erreur API ({resp.status_code}) : {resp.text}")
         return
 
-    result = resp.json()
+    result = response_json(resp, "L'API /predict")
+    if result is None:
+        return
 
     st.markdown("---")
     col_gauge, col_verdict = st.columns([1, 1])
@@ -570,7 +592,9 @@ def render_batch_tab():
         st.error(f"Erreur API ({resp.status_code}) : {resp.text}")
         return
 
-    results = resp.json()
+    results = response_json(resp, "L'API /predict-batch")
+    if results is None:
+        return
 
     # ⚠️ L'API /predict-batch ne renvoie pas d'identifiant client : on
     # suppose que l'ordre des résultats suit l'ordre des lignes envoyées.
@@ -796,7 +820,9 @@ def render_model_tab():
         st.error(f"Erreur API ({resp.status_code}) : {resp.text}")
         return
 
-    info = resp.json()
+    info = response_json(resp, "L'API /model-info")
+    if info is None:
+        return
 
     glass_card(
         info["model_name"],
