@@ -23,17 +23,35 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 DATASET_PATH = PROJECT_ROOT / "data" / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+DEFAULT_API_URL = "https://churn-baseline-916856991986.europe-west1.run.app"
+
+
+def env_file_value(key: str) -> str | None:
+    env_path = PROJECT_ROOT / ".env"
+    if not env_path.exists():
+        return None
+
+    for line in env_path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        name, value = line.split("=", 1)
+        if name.strip() == key:
+            return value.strip().strip("\"'")
+
+    return None
 
 
 def default_api_url() -> str:
     """
     Ordre de priorité : st.secrets (Streamlit Cloud) > variable d'env >
-    localhost par défaut pour le dev local.
+    .env local > URL Cloud Run par défaut.
     """
     try:
         return st.secrets["API_URL"]
     except (KeyError, FileNotFoundError):
-        return os.environ.get("API_URL", "http://localhost:8000")
+        return os.environ.get("API_URL") or env_file_value("API_URL") or DEFAULT_API_URL
 
 
 # ╔════════════════════════════════════════════════════════════╗

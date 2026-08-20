@@ -11,7 +11,6 @@
 ![Pandas](https://img.shields.io/badge/Pandas-150458.svg?style=for-the-badge&logo=pandas&logoColor=white)
 ![Matplotlib](https://img.shields.io/badge/Matplotlib-%23ffffff.svg?style=for-the-badge&logo=Matplotlib&logoColor=black)
 ![Google Drive](https://img.shields.io/badge/Google%20Drive-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)
-![Vercel](https://img.shields.io/badge/vercel-%23000000.svg?style=for-the-badge&logo=vercel&logoColor=white)
 ![Jupyter Notebook](https://img.shields.io/badge/jupyter-%23FA0F00.svg?style=for-the-badge&logo=jupyter&logoColor=white)
 
 Application de prediction du churn client telecom, basee sur un modele scikit-learn sauvegarde avec `joblib`.
@@ -183,16 +182,22 @@ uv run streamlit run streamlit/streamlit_app.py
 Par defaut, l'interface appelle :
 
 ```text
-http://localhost:8000
+https://churn-baseline-916856991986.europe-west1.run.app
 ```
 
 Pour cibler une autre API :
 
 ```bash
-API_URL=https://mon-api.example.com uv run streamlit run streamlit/streamlit_app.py
+API_URL=http://localhost:8000 uv run streamlit run streamlit/streamlit_app.py
 ```
 
-Sur Streamlit Cloud, ajouter `API_URL` dans les secrets si l'API est hebergee ailleurs.
+En local, tu peux aussi mettre l'URL dans `.env` :
+
+```env
+API_URL=https://churn-baseline-916856991986.europe-west1.run.app
+```
+
+Sur Streamlit Cloud, le fichier `.env` local n'est pas lu. Il faut ajouter `API_URL` dans les secrets Streamlit.
 
 ## Deploiement Streamlit Cloud
 
@@ -205,7 +210,7 @@ Streamlit Cloud lance uniquement l'interface Streamlit. Il ne demarre pas automa
 Une fois l'API deployee, ajouter son URL dans les secrets Streamlit :
 
 ```toml
-API_URL = "https://mon-api.example.com"
+API_URL = "https://churn-baseline-916856991986.europe-west1.run.app"
 ```
 
 L'URL de l'API est affichee dans la barre laterale, mais elle n'est pas modifiable par les visiteurs.
