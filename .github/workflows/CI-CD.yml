@@ -1,0 +1,108 @@
+name: Python CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+# ╔════════════════════════════════════════════════════════════╗
+# ║ 🔐 PERMISSIONS
+# ╚════════════════════════════════════════════════════════════╝
+# id-token: write est OBLIGATOIRE pour Workload Identity Federation
+# (c'est ce qui permet à GitHub Actions de récupérer un token GCP
+# temporaire sans stocker de clé JSON en dur)
+
+permissions:
+  contents: read
+  id-token: write
+
+# ╔════════════════════════════════════════════════════════════╗
+# ║ 🌍 VARIABLES GLOBALES DU WORKFLOW
+# ╚════════════════════════════════════════════════════════════╝
+# Ces valeurs ne sont PAS des secrets (pas besoin de les cacher),
+# donc on les met directement ici plutôt que dans GitHub Secrets.
+# Elles doivent correspondre à ton .env utilisé dans setup-gcp.sh.
+
+env:
+  PROJECT_ID: churn-baseline
+  REGION: europe-west1
+  SERVICE_NAME: churn-baseline
+  GAR_REPOSITORY: cloud-run
+  IMAGE_NAME: churn-api
+  RUNTIME_SERVICE_ACCOUNT: cloud-run-runtime@churn-baseline.iam.gserviceaccount.com
+
+jobs:
+
+  # ────────────────────────────────────────────────────────────
+  # JOB 1 : tests, tourne sur push ET pull_request
+  # ────────────────────────────────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # astral-sh/setup-uv installe uv ET peut installer la version python
+      # demandée directement — plus besoin de actions/setup-python séparé
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          uv sync
+      - name: Run tests
+        run: uv run pytest
+
+      - name: Run tests with coverage
+        run: uv run pytest --cov=api --cov=core --cov-report=term-missing --cov-fail-under=75
+
+  # ────────────────────────────────────────────────────────────
+  # JOB 2 : build + deploy, seulement sur push vers main
+  # ────────────────────────────────────────────────────────────
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Auth GCP via Workload Identity Federation (pas de clé JSON,
+      # juste les 2 secrets sortis par setup-gcp.sh section 19)
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push image
+        run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      # C'est ICI que CPU/MEMORY/MIN_INSTANCES/MAX_INSTANCES/TIMEOUT/CONCURRENCY
+      # sont réellement utilisées — nulle part avant dans le pipeline.
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          flags: >-
+            --cpu=1
+            --memory=512Mi
+            --min-instances=0
+            --max-instances=1
+            --timeout=300s
+            --concurrency=20
+            --service-account=${{ env.RUNTIME_SERVICE_ACCOUNT }}
