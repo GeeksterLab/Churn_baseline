@@ -12,8 +12,7 @@ POST /predict → with allowed token return a prediction
 import pytest
 from fastapi.testclient import TestClient
 from api.app import app
-
-client = TestClient(app)
+from core.settings import settings
 
 
 # TestClient + lifespan = need manager context
@@ -29,6 +28,7 @@ def test_health(client):
     assert response.json() == {
         "status": "ok",
         "app": "Predict Churn",
+        "demo_mode": True,
     }
 
 
@@ -43,9 +43,32 @@ def test_login(client):
     assert response.json()["token_type"] == "bearer"
 
 
-def test_error_predict(client):
-    response = client.post("/predict")
-    assert response.status_code == 401
+def test_error_predict(client, monkeypatch):
+    monkeypatch.setattr(settings, "DEMO_MODE", False)
+    response = client.post(
+        "/predict",
+        json={
+            "gender": "Male",
+            "SeniorCitizen": 1,
+            "Partner": "No",
+            "Dependents": "Yes",
+            "tenure": 1,
+            "PhoneService": "No",
+            "MultipleLines": "No phone service",
+            "InternetService": "DSL",
+            "OnlineSecurity": "No",
+            "OnlineBackup": "No",
+            "DeviceProtection": "No",
+            "TechSupport": "No",
+            "StreamingTV": "Yes",
+            "StreamingMovies": "No",
+            "Contract": "Month-to-month",
+            "PaperlessBilling": "No",
+            "PaymentMethod": "Electronic check",
+            "MonthlyCharges": 18.54,
+        },
+    )
+    assert response.status_code == 401, response.json()
 
 
 def test_predict(client):
@@ -78,7 +101,7 @@ def test_predict(client):
         },
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert response.status_code == 200
+    assert response.status_code == 200, response.json()
     assert "prediction" in response.json()
     assert "churn" in response.json()
     assert "label" in response.json()
