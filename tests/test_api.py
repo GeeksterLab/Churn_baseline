@@ -6,6 +6,13 @@ POST /predict → with allowed token return a prediction
 
 """
 
+import os
+
+# Keep tests independent from a developer's local .env file. These values must
+# be set before importing the app because settings are created at import time.
+os.environ["DEMO_MODE"] = "true"
+os.environ["SECRET_KEY"] = "tutochurn"
+
 # ╔════════════════════════════════════════════════════════════╗
 # ║ 🚚 IMPORTS
 # ╚════════════════════════════════════════════════════════════╝
